@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Evet / Hayır Butonları — Demo</title>
+  <style>
+    :root{--btn-w:180px;--btn-h:64px}
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    .wrap{
+      height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#0f172a,#071028);
+      flex-direction: column;
+      text-align: center;
+      overflow: hidden;
+      position: relative;
+    }
+    h1{
+      color:white;
+      font-size: clamp(22px,4vw,36px);
+      margin-bottom: 32px;
+      font-weight:600;
+    }
+    .message{
+      position: absolute;
+      top: 20px;
+      width: 100%;
+      text-align: center;
+      color: #fff;
+      font-size: clamp(18px,4vw,32px);
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    .container{
+      display:flex;gap:28px;align-items:center;justify-content:center;
+      width: min(90vw,900px);
+      padding:24px;
+      transition: all 0.6s ease;
+      position: relative;
+    }
+    button{
+      --w: var(--btn-w);
+      --h: var(--btn-h);
+      width:var(--w);
+      height:var(--h);
+      border-radius:14px;
+      border:0;cursor:pointer;font-weight:700;font-size:20px;letter-spacing:0.6px;
+      box-shadow: 0 8px 24px rgba(2,6,23,0.6), inset 0 -2px 0 rgba(255,255,255,0.02);
+      transition: all 0.4s cubic-bezier(.2,.9,.2,1);
+      transform-origin:center center;
+      position: relative;
+    }
+    .evet{
+      background: linear-gradient(180deg,#10b981,#059669);
+      color:white; 
+    }
+    .hayir{
+      background: linear-gradient(180deg,#ef4444,#dc2626);
+      color:white;
+    }
+    .fullscreen {
+      position: fixed !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      border-radius: 0 !important;
+      z-index: 9999 !important;
+      display:flex;align-items:center;justify-content:center;
+      font-size: clamp(22px, 5vw, 48px) !important;
+      transition: all 600ms cubic-bezier(.2,.9,.2,1) !important;
+    }
+    .hint{
+      position: absolute; bottom:24px; width:100%; text-align:center; color:rgba(255,255,255,0.6); font-size:14px;
+    }
+    .stitch{
+      position: fixed;
+      width: 200px;
+      height: 200px;
+      background: url('https://i.imgur.com/6y1NfEe.png') no-repeat center/contain;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      z-index: 9999;
+      animation: stitchAnim 1s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes stitchAnim {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Beni affeder misin lütfen?</h1>
+    <div class="message" id="finalMessage">Evete bastıktan sonra evet diyeceğini biliyordum seni çok seviyorum.</div>
+    <div class="container" id="container">
+      <button id="evet" class="evet" aria-label="Evet">Evet</button>
+      <button id="hayir" class="hayir" aria-label="Hayır">Hayır</button>
+    </div>
+    <div class="hint">Hayır'a her bastığında <strong>Evet</strong> butonu büyüyecek ve Hayır butonu köşeye kaçacak.</div>
+  </div>
+
+  <script>
+    (function(){
+      const evet = document.getElementById('evet');
+      const hayir = document.getElementById('hayir');
+      const container = document.getElementById('container');
+      const finalMessage = document.getElementById('finalMessage');
+
+      let scale = 1;
+      let isFullscreen = false;
+
+      function moveHayirRandom(){
+        const vw = window.innerWidth - hayir.offsetWidth;
+        const vh = window.innerHeight - hayir.offsetHeight;
+        // köşe pozisyonları: top-left, top-right, bottom-left, bottom-right
+        const positions = [
+          {top: 10, left:10},
+          {top:10, left:vw - 10},
+          {top:vh - 10, left:10},
+          {top:vh - 10, left:vw - 10}
+        ];
+        // rastgele bir pozisyon seç ama evet butonunun altında kalmayacak şekilde
+        const rectEvet = evet.getBoundingClientRect();
+        let pos;
+        do{
+          pos = positions[Math.floor(Math.random() * positions.length)];
+        } while(pos.top < rectEvet.bottom && pos.left < rectEvet.right && pos.left > rectEvet.left && pos.top > rectEvet.top);
+        hayir.style.position='fixed';
+        hayir.style.top = pos.top + 'px';
+        hayir.style.left = pos.left + 'px';
+      }
+
+      hayir.addEventListener('click', () => {
+        if (isFullscreen) return;
+        scale = scale * 2;
+        evet.style.transform = `scale(${scale})`;
+        moveHayirRandom();
+      });
+
+      function makeFullscreenEvet(){
+        isFullscreen = true;
+        evet.classList.add('fullscreen');
+        evet.style.transform = '';
+        hayir.style.opacity = '0';
+        hayir.style.pointerEvents = 'none';
+      }
+
+      evet.addEventListener('click', () => {
+        if (!isFullscreen) {
+          evet.animate([
+            { transform: `scale(${scale})` },
+            { transform: `scale(${scale * 0.92})` },
+            { transform: `scale(${scale})` }
+          ], { duration: 220, easing: 'ease-out' });
+          return;
+        }
+        showFinalMessage();
+        fireStitch();
+      });
+
+      function showFinalMessage(){
+        finalMessage.style.opacity = '1';
+      }
+
+      function fireStitch(){
+        const stitch = document.createElement('div');
+        stitch.className = 'stitch';
+        document.body.appendChild(stitch);
+        setTimeout(()=>stitch.remove(),1200);
+      }
+
+      hayir.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); hayir.click(); }});
+      evet.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); evet.click(); }});
+
+      function adaptSize(){
+        const vw = Math.min(window.innerWidth,1200);
+        const baseW = Math.max(120, Math.min(220, vw * 0.18));
+        const baseH = Math.max(48, Math.min(84, vw * 0.06));
+        document.documentElement.style.setProperty('--btn-w', baseW + 'px');
+        document.documentElement.style.setProperty('--btn-h', baseH + 'px');
+      }
+      window.addEventListener('resize', adaptSize);
+      adaptSize();
+
+    })();
+  </script>
+</body>
+</html>
